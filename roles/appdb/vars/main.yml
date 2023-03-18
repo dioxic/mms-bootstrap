@@ -1,0 +1,10 @@
+---
+# vars file for appdb
+appdb_dbPath: /data/appdb
+appdb_replSetName: appdb
+appdb_port: 27017
+appdb_bindIp: 0.0.0.0
+appdb_hosts: "{{ ansible_play_batch | map('extract', hostvars) | map(attribute='ansible_host') | product([appdb_port]) | map('join', ':') }}"
+appdb_hosts_csv: "{{ appdb_hosts | join(',') }}"
+#appdb_uri: "mongodb://{{appdb_hosts_csv}}/??maxPoolSize=150&retryWrites=false&retryReads=false&uuidRepresentation=standard"
+standalone: "{{ansible_play_batch|length == 1}}"

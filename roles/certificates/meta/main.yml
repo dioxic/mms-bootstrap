@@ -1,0 +1,5 @@
+galaxy_info:
+  author: Mark Baker-Munton
+  description: Copies certificates to the managed nodes
+  company: MongoDB
+  min_ansible_version: "2.1"

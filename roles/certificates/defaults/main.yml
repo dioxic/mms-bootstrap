@@ -1,0 +1,7 @@
+---
+# defaults file for certificates
+cert_dir: /etc/ssl
+cert_filename: server.pem
+ca_filename: ca.crt
+cert_type: combined
+cert_owner: mongod

@@ -1,0 +1,65 @@
+---
+# tasks file for agent
+- name: Fetch the bootstrap API key
+  include_vars:
+    file: /tmp/api-variables.yml
+  run_once: true
+  tags: api
+
+- name: Fetch the Org ID
+  include_vars:
+    file: /tmp/orgid.yml
+  run_once: true
+  tags: api
+
+- name: Get Ops Manager Project
+  uri:
+    url: "{{api_url}}/groups/byName/{{item}}"
+    force: true
+    url_username: "{{api_public_key}}"
+    url_password: "{{api_private_key}}"
+    status_code:
+      - 200
+      - 404
+  register: prj_list_res
+  with_items: "{{ groups.all | map('extract', hostvars) | map(attribute='mms_project') | unique | select() }}"
+  run_once: true
+  tags: api
+
+- name: print prj list
+  debug: msg="{{prj_list_res}}"
+  run_once: true
+  tags: api
+
+- name: Create Ops Manager Project
+  uri:
+    url: "{{api_url}}/groups"
+    method: POST
+    url_username: "{{api_public_key}}"
+    url_password: "{{api_private_key}}"
+    body_format: json
+    status_code:
+      - 201
+    body:
+      name: "{{item}}"
+      orgId: "{{org_id}}"
+  register: prj_create_res
+  with_items: "{{ prj_list_res.results | selectattr('status', 404) }}"
+  tags: api
+
+- name: Set Project ID
+  set_fact:
+    org_id: "{{prj_list_res.json | json_query('results[0].id')}}"
+  when: prj_list_res.status == 200
+  tags: api
+
+- name: Set Project ID
+  set_fact:
+    org_id: "{{prj_create_res.json | json_query('id')}}"
+  when: prj_create_res.status is defined and prj_create_res.status == 201
+  tags: api
+
+- name: print org Id
+  debug: msg="{{org_id}}"
+  run_once: true
+  tags: api

@@ -1,0 +1,36 @@
+[main]
+summary=Optimize settings for MongoDB
+
+[vm]
+transparent_hugepages=never
+
+# set read ahead and alpm on mongodb data devices
+[disk_mongodb]
+type=disk
+devices={{data_volume_device_name}}
+alpm=max_performance
+readahead=8
+
+[disk]
+readahead=>4096
+
+# because the disk plugin doesn't seem to work on amzn2
+[script]
+script=setra.sh
+
+[sysctl]
+fs.file-max=98000
+kernel.pid_max=64000
+kernel.threads-max=64000
+kernel.numa_balancing=0
+net.core.busy_read=50
+net.core.busy_poll=50
+net.core.somaxconn=4096
+net.ipv4.tcp_fastopen=3
+net.ipv4.tcp_fin_timeout=30
+net.ipv4.tcp_keepalive_intvl=30
+net.ipv4.tcp_keepalive_time=300
+net.ipv4.tcp_max_syn_backlog=4096
+vm.max_map_count=9999999
+vm.swappiness=1
+vm.zone_reclaim_mode=0

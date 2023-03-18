@@ -1,0 +1,202 @@
+---
+# tasks file for webapp
+- name: Install Ops Manager RPM
+  yum:
+    name: "{{ ops_manager_binary_url }}"
+    state: present
+
+- name: Get Ops Manager certificates
+  include_role:
+    name: certificates
+  vars:
+    cert_filename: https.pem
+    ca_filename: ca.crt
+    cert_type: https
+    cert_owner: mongodb-mms
+  when: mms_https
+
+- name: Configure Ops Manager
+  lineinfile:
+    dest: /opt/mongodb/mms/conf/conf-mms.properties
+    regexp: "^{{ item.property }}=.*"
+    line: "{{ item.property }}={{ item.value }}"
+    state: "{{ item.state }}"
+  loop:
+    - { property: "mongo.mongoUri", value: "{{ appdb_uri }}", state: "present" }
+    - { property: "mongo.ssl", value: "true", state: "present" }
+    - { property: "mongodb.ssl.CAFile", value: "{{ ca_file }}", state: "present" }
+    - { property: "mms.centralUrl", value: "{{ central_url }}", state: "present" }
+    - { property: "mms.https.PEMKeyFile", value: "/etc/ssl/https.pem", state: "{{mms_https_cfg_state}}" }
+    - { property: "mms.ignoreInitialUiSetup", value: "true", state: "present" }
+    - { property: "mms.fromEmailAddr", value: "example@example.com", state: "present" }
+    - { property: "mms.replyToEmailAddr", value: "example@example.com", state: "present" }
+    - { property: "mms.adminEmailAddr", value: "example@example.com", state: "present" }
+    - { property: "mms.mail.transport", value: "smtps", state: "present" }
+    - { property: "mms.mail.hostname", value: "mail.example.com", state: "present" }
+    - { property: "mms.mail.port", value: "465", state: "present" }
+  notify: restart mongodb-mms
+
+- name: Copy gen.key
+  copy:
+    src: gen.key
+    dest: /etc/mongodb-mms/gen.key
+    owner: mongodb-mms
+    group: mongodb-mms
+    mode: '0600'
+
+- name: Make head db directory
+  file:
+    path: /data/head
+    state: directory
+    owner: mongodb-mms
+    group: mongodb-mms
+    mode: '0755'
+
+- name: Start and enable the Ops Manager service
+  service:
+    name: mongodb-mms
+    state: started
+    enabled: yes
+
+- name: Wait for Ops Manager to startup
+  wait_for:
+    port: "{{mms_internal_port|int}}"
+
+- name: Get local machine public IP
+  ipify_facts:
+  run_once: true
+  register: public_ip
+  tags: api
+
+- name: Print public IP
+  debug:
+    msg: "{{public_ip.ansible_facts.ipify_public_ip}}"
+  tags: api
+
+- name: Create bootstrap user
+  uri:
+    url: "{{api_url}}/unauth/users?accessList={{public_ip.ansible_facts.ipify_public_ip}}"
+    method: POST
+    force: true
+    body_format: json
+    #return_content: true
+    status_code:
+      - 201  # CREATED
+      - 409  # USER_ALREADY_EXISTS
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    body:
+      username: "{{mms_user}}"
+      password: "{{mms_password}}"
+      firstName: "{{mms_firstName}}"
+      lastName: "{{mms_lastName}}"
+  register: bootstrap_user
+  run_once: true
+  tags: api
+
+- name: Save the bootstrap API key
+  local_action: copy content="{{bootstrap_user.json | json_query(jmesquery)}}" dest=/tmp/api-variables.yml
+  vars:
+    jmesquery: "programmaticApiKey.{api_public_key: publicKey, api_private_key: privateKey}"
+  become: false
+  when: bootstrap_user.status is defined and bootstrap_user.status == 201
+  run_once: true
+  tags: api
+
+- name: Fetch the bootstrap API key
+  include_vars:
+    file: /tmp/api-variables.yml
+  run_once: true
+  tags: api
+
+- name: print API key
+  debug:
+    msg:
+      - "private: {{api_private_key}}}"
+      - "public: {{api_public_key}}}"
+  run_once: true
+  tags: api
+
+- name: Install the mongocli
+  package:
+    name: mongocli
+    state: present
+
+- name: Make mongocli config directory
+  file:
+    path: .config/mongocli
+    state: directory
+    recurse: true
+    owner: "{{ansible_user}}"
+    group: "{{ansible_user}}"
+
+- name: Create mongocli config
+  template:
+    src: config.toml.j2
+    dest: .config/mongocli/config.toml
+    owner: "{{ansible_user}}"
+    group: "{{ansible_user}}"
+    mode: '0644'
+  vars:
+    api_private_key: "{{api_private_key}}"
+    api_public_key: "{{api_public_key}}"
+
+- name: Get Ops Manager Organization
+  uri:
+    url: "{{api_url}}/orgs/?name={{organization_name}}"
+    force: true
+    #    force_basic_auth: true
+    url_username: "{{api_public_key}}"
+    url_password: "{{api_private_key}}"
+    status_code:
+      - 200
+      - 404
+  register: org_list_res
+  run_once: true
+  tags: api
+
+#- name: print org list
+#  debug:
+#    msg: "{{org_list_res}}"
+#  run_once: true
+
+- name: Create Ops Manager Organization
+  uri:
+    url: "{{api_url}}/orgs"
+    method: POST
+    url_username: "{{api_public_key}}"
+    url_password: "{{api_private_key}}"
+    body_format: json
+    status_code:
+      - 201
+    body:
+      name: "{{organization_name}}"
+  register: org_create_res
+  run_once: true
+  when: org_list_res.status == 404
+  tags: api
+
+- name: Set Organization ID
+  set_fact:
+    org_id: "{{org_list_res.json | json_query('results[0].id')}}"
+  run_once: true
+  when: org_list_res.status == 200
+  tags: api
+
+- name: Set Organization ID
+  set_fact:
+    org_id: "{{org_create_res.json | json_query('id')}}"
+  run_once: true
+  when: org_create_res.status is defined and org_create_res.status == 201
+  tags: api
+
+- name: Save the Org ID
+  local_action: copy content="{{ org_id_json }}" dest=/tmp/orgid.yml
+  vars:
+    org_id_json:
+      org_id : "{{org_id}}"
+  become: false
+  when: org_id is defined
+  run_once: true
+  tags: api

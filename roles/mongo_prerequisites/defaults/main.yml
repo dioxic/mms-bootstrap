@@ -1,0 +1,3 @@
+---
+# defaults file for mongo_enterprise_dependencies
+data_volume_device_name: sdb

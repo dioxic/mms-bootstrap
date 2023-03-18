@@ -1,0 +1,17 @@
+---
+# tasks file for certificates
+- name: Copy certificates with owner and permissions
+  copy:
+    src: '{{cert_src_dir}}/{{inventory_hostname}}-{{cert_type}}.pem'
+    dest: '{{cert_dir}}/{{cert_filename}}'
+    owner: '{{cert_owner}}'
+    group: '{{cert_owner}}'
+    mode: '0644'
+
+- name: Copy CA with owner and permissions
+  copy:
+    src: '{{ca_src_dir}}/{{ca_filename}}'
+    dest: '{{cert_dir}}/{{ca_filename}}'
+    owner: '{{cert_owner}}'
+    group: '{{cert_owner}}'
+    mode: '0666'

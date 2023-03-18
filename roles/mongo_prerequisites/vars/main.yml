@@ -1,0 +1,4 @@
+---
+# vars file for mongo_enterprise_dependencies
+mongodb_tuned_dir: /etc/tuned/mongodb
+data_volume_ra: 8

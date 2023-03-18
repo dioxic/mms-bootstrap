@@ -1,0 +1,6 @@
+---
+# defaults file for mount_data_volume
+data_volume_device_name: nvme1n1
+data_volume_mount_point: /data
+data_volume_fstype: xfs
+data_volume_owner: mongod

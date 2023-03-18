@@ -1,0 +1,68 @@
+---
+# tasks file for appdb
+- name: Add MongoDB Enterprise Yum Repo
+  yum_repository:
+    name: 'mongodb-enterprise-{{mongodb_major_version}}'
+    description: MongoDB Enterprise Repository
+    baseurl: 'https://repo.mongodb.com/yum/amazon/2/mongodb-enterprise/{{mongodb_major_version}}/$basearch/'
+    gpgcheck: yes
+    gpgkey: 'https://www.mongodb.org/static/pgp/server-{{mongodb_major_version}}.asc'
+    enabled: yes
+
+- name: Install MongoDB Enterprise
+  yum:
+    name: mongodb-enterprise
+    state: latest
+
+- name: Make the appdb data directory
+  file:
+    path: '{{appdb_dbPath}}'
+    state: directory
+    owner: mongod
+    group: mongod
+    mode: '0755'
+
+- name: Get a server certificate for the appdb
+  include_role:
+    name: certificates
+  vars:
+    cert_filename: server.pem
+    ca_filename: ca.crt
+    cert_type: combined
+    cert_owner: mongod
+
+- name: Generate mongod.conf
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    mode: '0644'
+  notify: restart mongod
+
+- name: Enable the mongod service
+  service:
+    name: mongod
+    state: started
+    enabled: yes
+
+#- name: example 1
+#  ansible.builtin.debug:
+#    msg:
+#      - "AppDB hosts = {{appdb_hosts_csv}}"
+#      - "standalone = {{standalone}}"
+#  tags: tag1
+
+- name: Install pymongo
+  pip:
+    name: pymongo
+  when: ansible_play_batch.index(inventory_hostname) == 0 and not standalone
+
+- name: Initiate the appdb replica set
+  community.mongodb.mongodb_replicaset:
+    validate: false
+    replica_set: "{{ appdb_replSetName }}"
+    members: "{{ appdb_hosts }}"
+  when: ansible_play_batch.index(inventory_hostname) == 0 and not standalone
+
+- name: Calculating the appdb mongouri
+  set_fact:
+    appdb_uri: "mongodb://{{appdb_hosts_csv}}/?maxPoolSize=150&retryWrites=false&retryReads=false&uuidRepresentation=standard"

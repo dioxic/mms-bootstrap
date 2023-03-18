@@ -1,0 +1,4 @@
+---
+# handlers file for webapp
+- name: restart mongodb-mms
+  service: name=mongodb-mms state=restarted

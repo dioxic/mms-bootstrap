@@ -1,0 +1,50 @@
+---
+- name: base
+  hosts: all
+  become: true
+  remote_user: ec2-user
+  vars_files:
+    - ansible-variables.yml
+  roles:
+    - mongo_shell
+    - dns
+    - data_volume
+
+- name: mongo_prerequisites
+  hosts: agent,appdb
+  become: true
+  gather_facts: false
+  remote_user: ec2-user
+  vars_files:
+    - ansible-variables.yml
+  roles:
+    - mongo_prerequisites
+
+
+- name: appdb
+  hosts: appdb
+  become: true
+  gather_facts: false
+  remote_user: ec2-user
+  vars_files: ansible-variables.yml
+  roles:
+    - appdb
+
+- name: webapp
+  hosts: webapp
+  become: true
+  gather_facts: false
+  remote_user: ec2-user
+  vars_files: ansible-variables.yml
+  roles:
+    - webapp
+
+- name: agent
+  hosts: agent
+  become: true
+  gather_facts: false
+  remote_user: ec2-user
+  vars_files:
+    - ansible-variables.yml
+  roles:
+    - agent

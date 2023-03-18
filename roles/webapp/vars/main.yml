@@ -1,0 +1,8 @@
+---
+# vars file for webapp
+mms_internal_port: "{{ mms_https | ternary('8443','8080') }}"
+central_url_port_suffix: "{{ mms_load_balanced | ternary('', ':' + mms_internal_port) }}"
+central_url_protocol: "{{ mms_https | ternary('https', 'http') }}"
+mms_https_cfg_state: "{{ mms_https | ternary('present','absent') }}"
+central_url: "{{central_url_protocol}}://{{ mms_central_host }}{{central_url_port_suffix}}"
+api_url: "{{central_url}}/api/public/v1.0"

@@ -1,0 +1,32 @@
+---
+# tasks file for mount_data_volume
+- name: Make the data directory
+  file:
+    path: /data
+    state: directory
+    owner: '{{data_volume_owner}}'
+    group: '{{data_volume_owner}}'
+    mode: '0755'
+  when: data_volume_exists
+
+- name: Make the filesystem
+  community.general.filesystem:
+    dev: '/dev/{{data_volume_device_name}}'
+    fstype: '{{data_volume_fstype}}'
+  when: data_volume_exists
+
+- name: Mount the data directory
+  ansible.posix.mount:
+    path: '{{data_volume_mount_point}}'
+    src: 'UUID={{data_device_uuid}}'
+    fstype: '{{data_volume_fstype}}'
+    opts: noatime
+    state: mounted
+  when: data_volume_exists
+
+#- name: Print disk uuids
+#  ansible.builtin.debug:
+#    msg:
+#      - "{{data_device_uuid}}"
+#  tags:
+#    - tag1

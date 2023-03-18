@@ -1,0 +1,6 @@
+---
+# defaults file for mms
+
+# from https://www.mongodb.com/subscription/downloads/archived
+ops_manager_binary_url: https://downloads.mongodb.com/on-prem-mms/rpm/mongodb-mms-6.0.11.100.20230310T0146Z.x86_64.rpm
+organization_name: PS

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+. /usr/lib/tuned/functions
+
+start() {
+    blockdev --setra {{data_volume_ra}} /dev/{{data_volume_device_name}}
+    return 0
+}
+
+stop() {
+    return 0
+}
+
+process $@

@@ -1,0 +1,4 @@
+---
+# vars file for data_volume
+data_volume_exists: ansible_facts['device_links']['uuids'][data_volume_device_name] is defined
+data_device_uuid: "{{ ansible_facts['device_links']['uuids'][data_volume_device_name] | first }}"

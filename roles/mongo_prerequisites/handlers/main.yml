@@ -1,0 +1,4 @@
+---
+# handlers file for mongo_prerequisites
+- name: restart tuned
+  service: name=tuned state=restarted

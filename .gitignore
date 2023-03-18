@@ -1,0 +1,9 @@
+# Project exclude paths
+/.terraform/
+/.idea/
+/generated/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+user.auto.tfvars
+ansible-variables.yml

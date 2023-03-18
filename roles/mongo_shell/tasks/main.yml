@@ -1,0 +1,15 @@
+---
+# tasks file for mongo_shell
+- name: Add MongoDB Org Yum Repo
+  yum_repository:
+    name: mongodb-org-6.0
+    description: MongoDB Repository
+    baseurl: https://repo.mongodb.org/yum/amazon/$releasever/mongodb-org/6.0/$basearch/
+    gpgcheck: yes
+    gpgkey: https://www.mongodb.org/static/pgp/server-6.0.asc
+    enabled: yes
+
+- name: Install the MongoDB Shell
+  package:
+    name: mongodb-mongosh
+    state: latest

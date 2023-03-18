@@ -1,0 +1,4 @@
+---
+# vars file for certificates
+cert_src_dir: generated/certs
+ca_src_dir: certs

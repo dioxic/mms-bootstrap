@@ -1,0 +1,45 @@
+---
+# tasks file for mongo_prerequisites
+- name: Install MongoDB Enterprise dependencies
+  package:
+    name:
+      - cyrus-sasl
+      - cyrus-sasl-gssapi
+      - cyrus-sasl-plain
+      - krb5-libs
+      - libcurl
+      - net-snmp
+      - openldap
+      - openssl
+      - xz-libs
+    state: latest
+
+- name: Install tuned
+  package:
+    name: tuned
+
+- name: Create mongodb tuned folder
+  file:
+    path: '{{mongodb_tuned_dir}}'
+    state: directory
+
+- name: Copy disable-thp script
+  copy:
+    src: disable-thp.sh
+    dest: '{{mongodb_tuned_dir}}/disable-thp.sh'
+    mode: '755'
+
+- name: Copy setra script
+  template:
+    src: setra.sh.j2
+    dest: '{{mongodb_tuned_dir}}/setra.sh'
+    mode: '755'
+
+- name: Generate tuned.conf file
+  template:
+    src: tuned.conf.j2
+    dest: '{{mongodb_tuned_dir}}/tuned.conf'
+  notify: restart tuned
+
+- name: Activate the tuned profile
+  command: tuned-adm profile mongodb
